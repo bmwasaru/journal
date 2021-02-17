@@ -5,9 +5,9 @@ from django.contrib.auth import authenticate, login, logout
 from rest_framework import permissions, viewsets, status, views
 from rest_framework.response import Response
 
-from .models import Account
+from .models import Account, Post
 from .permissions import IsAccountOwner
-from .serializers import AccountSerializer
+from .serializers import AccountSerializer, PostSerializer
 
 
 class AccountViewSet(viewsets.ModelViewSet):
@@ -69,3 +69,26 @@ class LogoutView(views.APIView):
     def post(self, request, format=None):
         logout(request)
         return Response({}, status=status.HTTP_204_NO_CONTENT)
+
+
+class PostViewSet(viewsets.ModelViewSet):
+    queryset = Post.objects.order_by('-created_at')
+    serializer_class = PostSerializer
+
+    def get_permissions(self):
+        if self.request.method in permissions.SAFE_METHODS:
+            return (permissions.AllowAny(),)
+
+    def perform_create(self, serializer):
+        instance = serializer.save(author=self.request.user)
+        return super(PostViewSet, self).perform_create(serializer)
+
+
+class AccountPostsViewSet(viewsets.ViewSet):
+    queryset = Post.objects.select_related('author').all()
+    serializer_class = PostSerializer
+
+    def list(self, request, account_username=None):
+        queryset = self.queryset.filter(author__username=account_username)
+        serializer = self.serializer_class(queryset, many=True)
+        return Response(serializer.data)

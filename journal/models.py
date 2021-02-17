@@ -53,3 +53,13 @@ class Account(AbstractUser):
 
     def get_short_name(self):
         return self.first_name
+
+
+class Post(models.Model):
+    author = models.ForeignKey(Account, on_delete=models.CASCADE)
+    body = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return '{0}'.format(self.body)
